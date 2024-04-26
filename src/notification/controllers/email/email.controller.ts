@@ -10,8 +10,10 @@ export class EmailController {
     @Post('/send-email')
     async sendMessage() {
         try {
-            const successEmail = await this.emailService.sendEmail('apschauhan181@gmail.com', 'apschauhan181@gmail.com', "Hello from SES");
-            return `Eamil sent: ${successEmail.MessageId}`;
+            // const successEmail = await this.emailService.sendEmail('apschauhan181@gmail.com', 'apschauhan181@gmail.com', "Hello from SES");
+            // return `Eamil sent: ${successEmail.MessageId}`;
+
+            return await this.emailService.sendNotification('vanshitarohela@gmail.com', 'apschauhan181@gmail.com', "Hello from notifmeSdk");
         } catch (error) {
             return error.message;       
         }
