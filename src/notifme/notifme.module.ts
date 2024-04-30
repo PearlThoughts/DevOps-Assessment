@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { NotifmeService } from './services/notifme/notifme.service';
-import { NotifmeController } from './controllers/notifme/notifme.controller';
+import { NotifmeService } from './notifme.service';
+import { NotifmeController } from './notifme.controller';
 
 @Module({
   providers: [NotifmeService],

@@ -1,5 +1,5 @@
 import { Body, Controller, HttpException, Post, RawBodyRequest, Req } from '@nestjs/common';
-import { NotifmeService } from 'src/notifme/services/notifme/notifme.service';
+import { NotifmeService } from 'src/notifme/notifme.service';
 
 @Controller('notifme')
 export class NotifmeController {
