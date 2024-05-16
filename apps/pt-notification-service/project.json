@@ -1,0 +1,24 @@
+{
+  "name": "pt-notification-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/pt-notification-service/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "pt-notification-service:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "pt-notification-service:build:development"
+        },
+        "production": {
+          "buildTarget": "pt-notification-service:build:production"
+        }
+      }
+    }
+  }
+}
