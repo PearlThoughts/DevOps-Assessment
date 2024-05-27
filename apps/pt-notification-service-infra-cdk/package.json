@@ -5,12 +5,13 @@
     "pt-notification-service-infra-cdk": "bin/pt-notification-service-infra-cdk.js"
   },
   "scripts": {
-    "build": "tsc lambda/*.ts",
+    "build": "tsc lambda/**/*.ts",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.138",
     "@types/jest": "^29.5.12",
     "@types/node": "20.12.7",
     "aws-cdk": "2.142.1",
@@ -22,6 +23,7 @@
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.577.0",
     "aws-cdk-lib": "^2.142.1",
+    "aws-lambda": "^1.0.7",
     "constructs": "^10.3.0",
     "source-map-support": "^0.5.21"
   }

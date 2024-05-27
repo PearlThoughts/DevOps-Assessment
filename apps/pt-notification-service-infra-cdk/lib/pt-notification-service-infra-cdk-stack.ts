@@ -7,15 +7,16 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as event_sources from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export class PtNotificationServiceInfraCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const emailTransportationFunction = new lambda.Function(this, 'emailTransportationFunction', {
-      runtime: lambda.Runtime.NODEJS_20_X, // Choose any supported Node.js runtime
-      code: lambda.Code.fromAsset('lambda'), // Points to the lambda directory
-      handler: 'emailTransportation.handler', // Points to the 'hello' file in the lambda directory
+      runtime: lambda.Runtime.NODEJS_20_X,
+      code: lambda.Code.fromAsset('lambda/emailTransportation'),
+      handler: 'emailTransportation.handler',
     });
 
     emailTransportationFunction.addToRolePolicy(new iam.PolicyStatement({
@@ -48,7 +49,7 @@ export class PtNotificationServiceInfraCdkStack extends cdk.Stack {
 
 
     // Create an SQS queue
-    const queue = new sqs.Queue(this, 'Notification-Queue-CDK', {
+    const notificationQueue = new sqs.Queue(this, 'Notification-Queue-CDK', {
       visibilityTimeout: cdk.Duration.seconds(300)
     });
 
@@ -67,7 +68,28 @@ export class PtNotificationServiceInfraCdkStack extends cdk.Stack {
     });
 
     // Add the SQS queue as the target for the rule
-    rule.addTarget(new targets.SqsQueue(queue));
-  }
-  
+    rule.addTarget(new targets.SqsQueue(notificationQueue));
+
+    const notificationProcessingFunction = new lambda.Function(this, 'Notification-Processing-Function', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      code: lambda.Code.fromAsset('lambda/notification-processing'),   // change for the processing function
+      handler: 'notification-processing-dummy.handler',  // change for the processing function
+    });
+
+    notificationProcessingFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      resources: ['*'],
+    }));
+
+    notificationProcessingFunction.addEventSource(new event_sources.SqsEventSource(notificationQueue, {
+      batchSize: 5, // Adjust as needed
+    }));
+  }  
 }
