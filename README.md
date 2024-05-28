@@ -23,6 +23,7 @@ This project focuses on deploying a scalable, reliable, and maintainable notific
 ### Infrastructure as Code (IaC) Tools
 Use one of the following tools to provision infrastructure:
 - Terraform
+- Terraform With AWS CDK
 - AWS CDK (TypeScript or Python)
 - Pulumi (TypeScript or Python)
 
