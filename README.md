@@ -27,7 +27,7 @@ Use one of the following tools to provision infrastructure:
 - Pulumi (TypeScript or Python)
 
 ### Deployment:
-- **Services**: Deploy the **Notification API** and **Email Sender** using AWS ECS or AWS Fargate.
+- **Services**: Deploy the **Notification API** and **Email Sender** using AWS ECS Fargate.
 - **Service Mesh**: Use AWS App Mesh for service mesh capabilities and AWS Cloud Map for service discovery.
 - **Message Queue**: Use Amazon SQS to queue messages between services.
 - **Docker Images**: Create and manage Docker images.
@@ -81,17 +81,7 @@ Ensure the IaC code adheres to best practices, is well-documented, and structure
 10. **Test and Verify**: Ensure services are functioning correctly, can scale, and handle failures.
 11. **Document**: Prepare and include a README file explaining the deployment process, architecture, and operational considerations.
 
-## Scalability and Reliability
-- Configure auto-scaling using AWS mechanisms with a threshold of 70% CPU usage.
-- Implement health checks and recovery strategies to ensure service availability.
 
-## Observability
-- Set up monitoring and logging with AWS CloudWatch.
-- Track metrics such as queue length, processing times, and error rates.
-
-## Security
-- Follow least-privilege principles for IAM roles.
-- Store sensitive information securely using AWS Secrets Manager or Parameter Store.
 
 ## Bonus Points
 - Implement a CI/CD pipeline using AWS CodePipeline or GitHub Actions.
@@ -119,6 +109,7 @@ Your submission will be evaluated based on:
 
 ## Submission
 Submit your IaC code, configuration files, and README as a ZIP file or a link to a version-controlled repository (e.g., GitHub).
+Fork the repo, complete the assessment, and send a pull request. 
 
 ---
 
@@ -136,7 +127,7 @@ provides an interactive UI to view your projects, run tasks, generate code, and 
 comes with a LSP for Vim users.
 
 ## Start the application
-
+Run `npm install` and 
 Run `npx nx serve pt-notification-service` to start the development server. Happy coding!
 
 ## Build for production
