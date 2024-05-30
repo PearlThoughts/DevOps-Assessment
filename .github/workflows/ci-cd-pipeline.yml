@@ -1,0 +1,46 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Run Tests
+      run: npm test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Deploy to EC2
+      run: |
+        scp -i your-key.pem -r . ec2-user@your-ec2-instance.compute.amazonaws.com:/home/ec2-user/app
+        ssh -i your-key.pem ec2-user@your-ec2-instance.compute.amazonaws.com << 'EOF'
+          cd /home/ec2-user/app
+          npm install
+          pm2 restart all
+        EOF
+
