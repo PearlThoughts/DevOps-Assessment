@@ -16,10 +16,18 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
 
+    - name: Cache Node.js modules
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '14'
+        node-version: '14'  # specify the Node.js version your project uses
 
     - name: Install Dependencies
       run: npm install
@@ -35,12 +43,22 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'  # specify the Node.js version your project uses
+
     - name: Deploy to EC2
+      env:
+        EC2_USER: ec2-user
+        EC2_HOST: your-ec2-instance.compute.amazonaws.com
+        KEY_FILE: ${{ secrets.AWS_KEY_FILE }}  # This should be set in your repository secrets
       run: |
-        scp -i your-key.pem -r . ec2-user@your-ec2-instance.compute.amazonaws.com:/home/ec2-user/app
-        ssh -i your-key.pem ec2-user@your-ec2-instance.compute.amazonaws.com << 'EOF'
-          cd /home/ec2-user/app
+        scp -o StrictHostKeyChecking=no -i $KEY_FILE -r . $EC2_USER@$EC2_HOST:/home/$EC2_USER/app
+        ssh -o StrictHostKeyChecking=no -i $KEY_FILE $EC2_USER@$EC2_HOST << 'EOF'
+          cd /home/$EC2_USER/app
           npm install
-          pm2 restart all
+          pm2 restart all || pm2 start index.js --name "notification-service"
         EOF
+
 
