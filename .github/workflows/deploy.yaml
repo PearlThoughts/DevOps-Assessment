@@ -1,0 +1,58 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Install AWS CLI
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      # Log in to AWS ECR
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 992382552335.dkr.ecr.ap-south-1.amazonaws.com
+
+      # Retrieve ECR repository URL using Terraform output
+      - name: Retrieve ECR repository URL
+        id: ecr
+        run: |
+          ecr_repo_url=$(terraform output -raw ecr_repo_url)
+          echo "::set-output name=ecr_repo_url::$ecr_repo_url"
+
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ steps.ecr.outputs.ecr_repo_url }} .
+      
+      # Tag Docker image with ECR repository URL
+      - name: Tag Docker image
+        run: |
+          docker tag my-image ${{ steps.ecr.outputs.ecr_repo_url }}
+
+      # Push Docker image to ECR
+      - name: Push Docker image to Amazon ECR
+        run: |
+          docker push ${{ steps.ecr.outputs.ecr_repo_url }}
+      # Initialize Terraform
+      - name: Initialize Terraform
+        run: terraform init
+
+      # Apply Terraform changes
+      - name: Apply Terraform changes
+        run: terraform apply -auto-approve
+ 
+      - name: Update ECS service
+        run: |
+          aws ecs update-service --cluster $(terraform output -raw ecs_cluster_name) --service $(terraform output -raw ecs_service_name) --force-new-deployment
