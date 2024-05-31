@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS infrastructure for Notification Service
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+    Type: String
+
+Resources:
+  NotificationAPIRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: notification-api
+
+  EmailSenderRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: email-sender
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: notification-queue
+
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AmazonECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:GetAuthorizationToken
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  NotificationAPITask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: notification-api
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: notification-api
+          Image: 013953191020.dkr.ecr.us-east-1.amazonaws.com/notification-api:latest
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+          Environment:
+            - Name: QUEUE_URL
+              Value: !Ref SQSQueue
+
+  EmailSenderTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: email-sender
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'
+      Memory: '512'
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: email-sender
+          Image: 013953191020.dkr.ecr.us-east-1.amazonaws.com/email-sender:latest
+          Essential: true
+          Environment:
+            - Name: QUEUE_URL
+              Value: !Ref SQSQueue
+            - Name: SES_REGION
+              Value: !Ref AWS::Region
+
+  NotificationAPIService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref NotificationAPITask
+      DesiredCount: 2
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+
+  EmailSenderService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref EmailSenderTask
+      DesiredCount: 2
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+
+Outputs:
+  NotificationAPIRepositoryUri:
+    Description: URI of the Notification API ECR repository
+    Value: !GetAtt NotificationAPIRepository.RepositoryUri
+  EmailSenderRepositoryUri:
+    Description: URI of the Email Sender ECR repository
+    Value: !GetAtt EmailSenderRepository.RepositoryUri
+  NotificationAPIServiceName:
+    Description: Name of the Notification API service
+    Value: !Ref NotificationAPIService
+  EmailSenderServiceName:
+    Description: Name of the Email Sender service
+    Value: !Ref EmailSenderService
+  SQSQueueUrl:
+    Description: URL of the SQS queue
+    Value: !Ref SQSQueue

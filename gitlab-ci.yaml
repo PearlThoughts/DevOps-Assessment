@@ -1,0 +1,32 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  AWS_REGION: us-east-1
+
+before_script:
+  - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+  - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+  - aws configure set region $AWS_REGION
+
+build_notification_api:
+  stage: build
+  script:
+    - docker build -t notification-api ./notification-api
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 013953191020.dkr.ecr.$AWS_REGION.amazonaws.com
+    - docker tag notification-api:latest 013953191020.dkr.ecr.$AWS_REGION.amazonaws.com/notification-api:latest
+    - docker push 013953191020.dkr.ecr.$AWS_REGION.amazonaws.com/notification-api:latest
+
+build_email_sender:
+  stage: build
+  script:
+    - docker build -t email-sender ./email-sender
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 013953191020.dkr.ecr.$AWS_REGION.amazonaws.com
+    - docker tag email-sender:latest 013953191020.dkr.ecr.$AWS_REGION.amazonaws.com/email-sender:latest
+    - docker push 013953191020.dkr.ecr.$AWS_REGION.amazonaws.com/email-sender:latest
+
+deploy_infrastructure:
+  stage: deploy
+  script:
+    - aws cloudformation deploy --template-file cloudformation.yml --stack-name notification-service --capabilities CAPABILITY_NAMED_IAM --parameter-overrides KeyName=$KEY_NAME
