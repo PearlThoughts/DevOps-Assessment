@@ -1,4 +1,4 @@
-name: Deploy to ECS
+name: Deploy to ECS 
 
 on:
   push:
@@ -13,46 +13,47 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Install AWS CLI
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
       - name: Install AWS CLI
         run: |
           sudo apt-get update
           sudo apt-get install -y awscli
 
-      # Log in to AWS ECR
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 992382552335.dkr.ecr.ap-south-1.amazonaws.com
-
-      # Retrieve ECR repository URL using Terraform output
-      - name: Retrieve ECR repository URL
-        id: ecr
-        run: |
-          ecr_repo_url=$(terraform output -raw ecr_repo_url)
-          echo "::set-output name=ecr_repo_url::$ecr_repo_url"
-
-      # Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ steps.ecr.outputs.ecr_repo_url }} .
-      
-      # Tag Docker image with ECR repository URL
-      - name: Tag Docker image
-        run: |
-          docker tag my-image ${{ steps.ecr.outputs.ecr_repo_url }}
-
-      # Push Docker image to ECR
-      - name: Push Docker image to Amazon ECR
-        run: |
-          docker push ${{ steps.ecr.outputs.ecr_repo_url }}
-      # Initialize Terraform
       - name: Initialize Terraform
         run: terraform init
+        working-directory: ./terraform
 
-      # Apply Terraform changes
-      - name: Apply Terraform changes
+      - name: Apply Terraform configuration
         run: terraform apply -auto-approve
- 
-      - name: Update ECS service
+        working-directory: ./terraform
+
+      - name: Login to Amazon ECR
+        id: ecr-login
         run: |
-          aws ecs update-service --cluster $(terraform output -raw ecs_cluster_name) --service $(terraform output -raw ecs_service_name) --force-new-deployment
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com
+
+      - name: Build Docker image
+        run: |
+          docker build -t notification-service .
+          docker tag notification-service:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/notification-service:latest
+
+      - name: Push Docker image to Amazon ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com/notification-service:latest
+
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service --cluster notification_cluster --service notification-service --force-new-deployment
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-south-1
