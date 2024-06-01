@@ -83,7 +83,7 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t notification-service /apps/pt-notification-service
+        docker build -t notification-service ./apps/pt-notification-service-e2e
         docker tag notification-service:latest "851725279482.dkr.ecr.us-west-2.amazonaws.com/notification-service:latest"
         docker push "851725279482.dkr.ecr.us-west-2.amazonaws.com/notification-service:latest"
 
