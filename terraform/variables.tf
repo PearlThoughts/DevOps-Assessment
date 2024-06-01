@@ -129,16 +129,16 @@ variable "ecs_task_execution_role_name" {
 }
 
 variable "max_count" {
-  type        = number
+  type    = number
   default = 10
 }
 
 variable "min_count" {
-  type        = number
+  type    = number
   default = 1
 }
 
 variable "autoscaling_cpu_target" {
-  type        = number
+  type    = number
   default = 70
 }
