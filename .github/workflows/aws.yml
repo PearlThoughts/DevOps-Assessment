@@ -44,7 +44,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  build:
     name: Deploy
     runs-on: ubuntu-latest
     environment: production
@@ -65,7 +65,7 @@ jobs:
       run: npm install
 
     - name: Run tests
-        run: npm test
+      run: npm test
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
