@@ -3,8 +3,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb_sg.id]
-  subnets            = ["subnet-03b108e1dafc6f9e5","subnet-0f47b25e174d49d09"]  # Replace with your subnet IDs
-
+  subnets            = ["subnet-03b108e1dafc6f9e5","subnet-0f47b25e174d49d09"]  
   enable_deletion_protection = false
 }
 resource "aws_security_group" "lb_sg" {
