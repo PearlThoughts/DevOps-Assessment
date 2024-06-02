@@ -41,7 +41,7 @@ resource "aws_lb_target_group" "notification_tg" {
   target_type = "ip"
 
   health_check {
-    path                = "/api"
+    path                = "/"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
@@ -69,8 +69,8 @@ resource "aws_ecs_service" "notification_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = ["subnet-03b108e1dafc6f9e5", "subnet-0f47b25e174d49d09"]
-    security_groups  = [aws_security_group.ecs_task_sg.id]
+    subnets          = ["subnet-03b108e1dafc6f9e5","subnet-0f47b25e174d49d09"]  
+    security_groups  = ["sg-01f2e8a08f271674d"]
     assign_public_ip = true
   }
 
