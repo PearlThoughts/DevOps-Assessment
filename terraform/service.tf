@@ -1,5 +1,3 @@
-# terraform/ecs.tf
-
 resource "aws_ecs_cluster" "notification_cluster" {
   name = "notification_cluster"
 }
@@ -71,8 +69,8 @@ resource "aws_ecs_service" "notification_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = ["subnet-03b108e1dafc6f9e5","subnet-0f47b25e174d49d09"]  # Replace with your subnet IDs
-    security_groups  = ["sg-01f2e8a08f271674d"]
+    subnets          = ["subnet-03b108e1dafc6f9e5", "subnet-0f47b25e174d49d09"]
+    security_groups  = [aws_security_group.ecs_task_sg.id]
     assign_public_ip = true
   }
 
