@@ -29,6 +29,13 @@ resource "aws_ecs_task_definition" "notification_task" {
         awslogs-stream-prefix = "ecs"
       }
     }
+    healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:3000/api || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
     }
   ])
 }
@@ -41,7 +48,7 @@ resource "aws_lb_target_group" "notification_tg" {
   target_type = "ip"
 
   health_check {
-    path                = "/"
+    path                = "/api"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
