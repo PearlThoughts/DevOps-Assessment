@@ -1,40 +1,24 @@
-# Stage 1: Build the application
-FROM node:18-alpine AS builder
+# Use the official Node.js image as the base image
+FROM node:20
 
-# Set the working directory inside the Docker image
+# Create and set the working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json from the root directory
+# Copy package.json and package-lock.json from the root directory to the working directory in the container
 COPY ../../package.json ./
 COPY ../../package-lock.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the application code to the Docker image
+# Copy the rest of the application code to the working directory in the container
 COPY . .
 
-# Build the application using nx
-RUN npx nx build pt-notification-service
+# Build the application
+RUN npm run build
 
-# Stage 2: Run the application
-FROM node:18-alpine
-
-# Set the working directory
-WORKDIR /usr/src/app
-
-# Copy only the necessary files from the build stage
-COPY --from=builder /app/dist/apps/pt-notification-service /usr/src/app
-
-# Copy package.json and package-lock.json from the root directory again
-COPY ../../package.json ./
-COPY ../../package-lock.json ./
-
-# Install only production dependencies
-RUN npm install --only=production
-
-# Expose the port that the app runs on
+# Expose the port the app runs on
 EXPOSE 3000
 
 # Command to run the application
-CMD ["node", "main.js"]
+CMD ["npm", "start"]
