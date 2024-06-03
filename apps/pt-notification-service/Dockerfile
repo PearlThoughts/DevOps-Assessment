@@ -2,10 +2,11 @@
 FROM node:18-alpine AS builder
 
 # Set the working directory inside the Docker image
-WORKDIR /app
+WORKDIR /usr/src/app
 
 # Copy package.json and package-lock.json from the root directory
-COPY ../../package*.json ./
+COPY ../../package.json ./
+COPY ../../package-lock.json ./
 
 # Install dependencies
 RUN npm install
@@ -20,13 +21,14 @@ RUN npx nx build pt-notification-service
 FROM node:18-alpine
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
 # Copy only the necessary files from the build stage
-COPY --from=builder /app/dist/apps/pt-notification-service /app
+COPY --from=builder /app/dist/apps/pt-notification-service /usr/src/app
 
 # Copy package.json and package-lock.json from the root directory again
-COPY ../../package*.json ./
+COPY ../../package.json ./
+COPY ../../package-lock.json ./
 
 # Install only production dependencies
 RUN npm install --only=production
