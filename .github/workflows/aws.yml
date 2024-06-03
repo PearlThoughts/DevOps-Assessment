@@ -35,9 +35,9 @@ env:
   ECR_REPOSITORY: notification-service           # set this to your Amazon ECR repository name
   ECS_SERVICE: notification-service                 # set this to your Amazon ECS service name
   ECS_CLUSTER: notification-cluster                 # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: MY_ECS_TASK_DEFINITION # set this to the path to your Amazon ECS task definition
+  ECS_TASK_DEFINITION: terraform/templates/notification-service.json # set this to the path to your Amazon ECS task definition
                                                # file, e.g. .aws/task-definition.json
-  CONTAINER_NAME: MY_CONTAINER_NAME           # set this to the name of the container in the
+  CONTAINER_NAME: notification-service          # set this to the name of the container in the
                                                # containerDefinitions section of your task definition
 
 permissions:
@@ -50,7 +50,7 @@ jobs:
     environment: production
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [18.x]
 
     steps:
     - name: Checkout
@@ -83,9 +83,13 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t notification-service ./apps/pt-notification-service-e2e
-        docker tag notification-service:latest "851725279482.dkr.ecr.us-west-2.amazonaws.com/notification-service:latest"
-        docker push "851725279482.dkr.ecr.us-west-2.amazonaws.com/notification-service:latest"
+        docker build -t notification-service ./apps/pt-notification-service
+        docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+        docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+        docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        #docker tag notification-service:latest "851725279482.dkr.ecr.us-west-2.amazonaws.com/notification-service:latest"
+        #docker push "851725279482.dkr.ecr.us-west-2.amazonaws.com/notification-service:latest"
 
 
     - name: Fill in the new image ID in the Amazon ECS task definition
