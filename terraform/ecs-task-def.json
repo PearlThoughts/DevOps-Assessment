@@ -1,0 +1,33 @@
+{
+    "family": "notification-api",
+    "networkMode": "awsvpc",
+    "containerDefinitions": [
+      {
+        "name": "notification-api",
+        "image": "<account_id>.dkr.ecr.us-west-2.amazonaws.com/notification-api:latest",
+        "cpu": 256,
+        "memory": 512,
+        "essential": true,
+        "portMappings": [
+          {
+            "containerPort": 3000,
+            "hostPort": 3000
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/notification-api",
+            "awslogs-region": "us-west-2",
+            "awslogs-stream-prefix": "ecs"
+          }
+        }
+      }
+    ],
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::<account_id>:role/ecsTaskExecutionRole"
+  }
+  
