@@ -50,3 +50,6 @@ resource "aws_appmesh_virtual_node" "email_sender_node" {
   }
 }
 
+resource "aws_sqs_queue" "notification_queue" {
+  name = "notification-queue"
+}
