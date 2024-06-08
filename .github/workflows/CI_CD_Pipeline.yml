@@ -1,0 +1,69 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: eu-north-1
+      ECR_REPOSITORY_NOTIFICATION_API: notification-api
+      ECR_REPOSITORY_EMAIL_SENDER: email-sender
+      TF_VERSION: 1.0.11
+      TERRAFORM_WORKING_DIR: ./terraform
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Log in to Amazon ECR
+      id: ecr-login
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Extract ECR repository URI for Notification API
+      id: ecr-notification
+      run: |
+        echo "::set-output name=uri::$(aws ecr describe-repositories --repository-name $ECR_REPOSITORY_NOTIFICATION_API --query 'repositories[0].repositoryUri' --output text)"
+
+    - name: Extract ECR repository URI for Email Sender
+      id: ecr-email
+      run: |
+        echo "::set-output name=uri::$(aws ecr describe-repositories --repository-name $ECR_REPOSITORY_EMAIL_SENDER --query 'repositories[0].repositoryUri' --output text)"
+
+    - name: Build, tag, and push Notification API image
+      run: |
+        docker build -t $ECR_REPOSITORY_NOTIFICATION_API:latest -f ./apps/pt-notification-service/Dockerfile .
+        docker tag $ECR_REPOSITORY_NOTIFICATION_API:latest ${{ steps.ecr-notification.outputs.uri }}:latest
+        docker push ${{ steps.ecr-notification.outputs.uri }}:latest
+
+    - name: Build, tag, and push Email Sender image
+      run: |
+        docker build -t $ECR_REPOSITORY_EMAIL_SENDER:latest -f ./apps/pt-notification-service-e2e/Dockerfile .
+        docker tag $ECR_REPOSITORY_EMAIL_SENDER:latest ${{ steps.ecr-email.outputs.uri }}:latest
+        docker push ${{ steps.ecr-email.outputs.uri }}:latest
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Terraform Init
+      working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+      run: terraform init
+
+    - name: Terraform Apply
+      working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+      run: terraform apply -auto-approve -var notification_api_image_uri=${{ steps.ecr-notification.outputs.uri }} -var email_sender_image_uri=${{ steps.ecr-email.outputs.uri }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
