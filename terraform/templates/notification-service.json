@@ -1,0 +1,27 @@
+{
+  "requiresCompatibilities": [
+      "FARGATE"
+  ],
+  "family": "notification-service",
+  "containerDefinitions": [
+      {
+          "name": "notification-service",
+          "image": "851725279482.dkr.ecr.ap-south-1.amazonaws.com/notification-service:latest",
+          "essential": true,
+          "cpu": "1024",
+          "memory":"2048",
+          "portMappings": [
+            {
+              "containerPort": 3000,
+              "hostPort"     : 3000
+            }
+          ]
+
+      }
+  ],
+  "volumes": [],
+  "networkMode": "awsvpc",
+  "memory": "2048",
+  "cpu": "1024",
+  "executionRoleArn": "arn:aws:iam::851725279482:role/ecsTaskExecutionRole"
+}
