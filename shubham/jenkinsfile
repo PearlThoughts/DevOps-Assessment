@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    environment {
+        NODE_ENV = 'production'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout the code from the repository
+                git branch: 'main', url: 'https://github.com/your-repo/notification-service.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    // Install Node.js dependencies
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    // Run tests
+                    sh 'npm test'
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    // Build the application
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    // Deploy the application
+                    // This is a placeholder for the actual deployment script/command
+                    sh './deploy.sh'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+        success {
+            // Send a notification if the build is successful
+            script {
+                // Example: Send Slack notification
+                slackSend(channel: '#your-channel', message: "Build SUCCESS: ${env.JOB_NAME} - ${env.BUILD_NUMBER}")
+            }
+        }
+        failure {
+            // Send a notification if the build fails
+            script {
+                // Example: Send Slack notification
+                slackSend(channel: '#your-channel', message: "Build FAILURE: ${env.JOB_NAME} - ${env.BUILD_NUMBER}")
+            }
+        }
+    }
+}
