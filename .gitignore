@@ -39,3 +39,7 @@ testem.log
 Thumbs.db
 
 .nx/cache
+
+.terraform
+.terraform.lock.hcl
+terraform.tfstate
