@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = "https://github.com/ankitsubhamjyoti2005/DevOps-Assessment"
+        IMAGE_NAME = "your-ecr-repo-url/nx-app:latest"
+        AWS_REGION = "us-west-2" 
+        DOCKER_CREDENTIALS_ID = "docker-hub-credentials" 
+        TERRAFORM_CREDENTIALS_ID = "aws-credentials" 
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: "${env.REPO_URL}"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${env.IMAGE_NAME}")
+                }
+            }
+        }
+
+        stage('Push Docker Image to ECR') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${env.DOCKER_CREDENTIALS_ID}", passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    sh """
+                    echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                    docker push ${env.IMAGE_NAME}
+                    """
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${env.TERRAFORM_CREDENTIALS_ID}", passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    dir('terraform') {
+                        sh 'terraform init'
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${env.TERRAFORM_CREDENTIALS_ID}", passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    dir('terraform') {
+                        sh 'terraform apply -auto-approve -var="docker_image=${env.IMAGE_NAME}"'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to AWS Fargate') {
+            steps {
+                script {
+                    echo "Deploying the application using ECS Fargate..."
+                    dir('terraform') {
+                        withCredentials([usernamePassword(credentialsId: "${env.TERRAFORM_CREDENTIALS_ID}", passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                            sh 'terraform apply -auto-approve'
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}

@@ -1,0 +1,11 @@
+Jenkins Server: You need a running Jenkins instance
+
+
+Jenkins Plugins:
+    -Docker Pipeline Plugin
+    -Terraform Plugin
+    -Git Plugin
+
+Jenkins Credentials:
+    -Docker Registry credentials (e.g., Docker Hub or AWS ECR).
+    -AWS credentials (Access Key ID and Secret Access Key) for Terraform.
