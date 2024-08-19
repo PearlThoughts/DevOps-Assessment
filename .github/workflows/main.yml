@@ -1,0 +1,58 @@
+name: CI/CD Pipeline for Notification Service built in Node.js ecosystem
+
+on:
+  push:
+    branches:
+      - main  
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+   
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+     
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+     
+      - name: Install Dependencies
+        run: npm install
+      
+      - name: Run Linting and Tests
+        run: |
+          npm run lint
+          npm test
+
+    
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+     
+      - name: Build Docker Image
+        run: |
+          docker build -t notification-api .
+          docker tag notification-api:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/notification-api:latest
+
+      
+      - name: Push Docker Image to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/notification-api:latest
+
+      
+      - name: Deploy to Amazon ECS
+        run: |
+          aws ecs update-service --cluster notification-cluster --service notification-api-service --force-new-deployment
