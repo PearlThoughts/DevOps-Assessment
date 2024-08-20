@@ -1,179 +1,187 @@
-# PearlThoughts Interview Assessment
-# Scalable Notification Service Deployment on AWS
-
-## Introduction
-
-This project focuses on deploying a scalable, reliable, and maintainable notification system on AWS. The system consists of two primary microservices:
-- **Notification API**: Receives notification requests and queues them.
-- **Email Sender**: Processes messages from the queue and sends emails.
-
-## Table of Contents
-- [Requirements](#requirements)
-- [Architecture](#architecture)
-- [Infrastructure as Code (IaC)](#infrastructure-as-code-iac)
-- [Deployment Process](#deployment-process)
-- [Scalability and Reliability](#scalability-and-reliability)
-- [Observability](#observability)
-- [Security](#security)
-- [Bonus Points](#bonus-points)
-- [Instructions](#instructions)
-- [Evaluation](#evaluation)
+CI/CD Pipeline with Zero-Downtime Deployment for Notification API and Email Sender
+## Overview
+This project implements a Notification API and Email Sender microservices using AWS ECS Fargate. The infrastructure is provisioned using Terraform, and a CI/CD pipeline is set up using GitHub Actions to automate the deployment process. The deployment strategy ensures zero downtime by using rolling updates.
 
 ## Requirements
-### Infrastructure as Code (IaC) Tools
-Use one of the following tools to provision infrastructure:
-- Terraform
-- Terraform With AWS CDK
-- AWS CDK (TypeScript or Python)
-- Pulumi (TypeScript or Python)
+Tools and Services
+Infrastructure as Code (IaC) Tools:
+  Terraform
 
-### Deployment:
-- **Services**: Deploy the **Notification API** and **Email Sender** using AWS ECS Fargate.
-- **Service Mesh**: Use AWS App Mesh for service mesh capabilities and AWS Cloud Map for service discovery.
-- **Message Queue**: Use Amazon SQS to queue messages between services.
-- **Docker Images**: Create and manage Docker images.
+## AWS Services:
 
-### Scalability and Reliability:
-- Implement auto-scaling strategies based on CPU usage (70% threshold).
-- Ensure system resilience and automatic recovery from failures.
+ECS Fargate
+Amazon SQS
+AWS App Mesh
+AWS Cloud Map
+Amazon ECR
+Amazon CloudWatch
+AWS IAM
+AWS SES
+## Deployment Requirements
+Scalability and Reliability:
 
-### Observability:
-- Set up monitoring and logging using AWS CloudWatch.
-- Track key metrics such as queue length, processing times, and error rates.
+Implement auto-scaling based on CPU usage (70% threshold).
+Ensure system resilience and automatic recovery from failures.
+## Observability:
 
-### Security:
-- Implement least-privilege IAM roles.
-- Securely store sensitive information using AWS Secrets Manager or Parameter Store.
+Set up monitoring and logging using AWS CloudWatch.
+Track key metrics such as queue length, processing times, and error rates.
+## Security:
 
+Implement least-privilege IAM roles.
+Securely store sensitive information using AWS Secrets Manager 
 ## Architecture
+Components
+Notification API (ECS/Fargate): Receives requests and queues them into Amazon SQS.
+Email Sender (ECS/Fargate): Processes queued messages and sends emails using AWS SES.
+AWS App Mesh: Provides service mesh capabilities for the microservices.
+AWS Cloud Map: Facilitates service discovery for microservices.
+Amazon SQS: Queues messages between the Notification API and Email Sender.
+Amazon CloudWatch: Monitors the system and logs application output.
+Workflow
+Client Request: Client sends a notification request to the Notification API.
+Notification API: The API queues the request into Amazon SQS.
+Email Sender: Processes the SQS message and sends an email using AWS SES.
+Monitoring: CloudWatch monitors the system performance and logs.
+Infrastructure as Code (IaC)
+## Terraform Modules
+The infrastructure is provisioned using Terraform with the following modules:
 
-The architecture consists of:
-- **Notification API** (ECS/Fargate): Receives requests and queues them.
-- **Email Sender** (ECS/Fargate): Processes queued messages and sends emails.
-- **AWS App Mesh**: Provides service mesh capabilities.
-- **AWS Cloud Map**: Facilitates service discovery.
-- **Amazon SQS**: Queues messages between the Notification API and Email Sender.
-- **Amazon CloudWatch**: Monitors the system.
+VPC: Creates a custom VPC with public and private subnets, internet gateway, NAT gateway, and route tables.
+ECS: Manages the ECS cluster, task definitions, and services for Notification API and Email Sender.
+ECR: Creates ECR repositories for storing Docker images.
+SQS: Manages the SQS queue for message handling.
+SES: Configures SES for sending emails.
+IAM: Manages IAM roles and policies.
+App Mesh: Configures AWS App Mesh for service mesh capabilities.
+Cloud Map: Manages service discovery using AWS Cloud Map.
+Load Balancer: Creates and configures an Application Load Balancer (ALB).
+CloudWatch: Configures monitoring and logging using CloudWatch.
+Terraform Configuration
+Below is the Terraform configuration structure used in this project:
+terraform/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── .terraform/
+├── modules/
+│   ├── vpc/
+│   ├── ecs/
+│   ├── ecr/
+│   ├── sqs/
+│   ├── ses/
+│   ├── iam/
+│   ├── appmesh/
+│   ├── cloudmap/
+│   ├── load_balancer/
+│   ├── cloudwatch/
+└── .gitignore
+## CI/CD Pipeline
+GitHub Actions Workflow
+A GitHub Actions workflow is configured to automate the CI/CD process, including building Docker images, pushing them to Amazon ECR, and deploying the infrastructure using Terraform.
 
-## Infrastructure as Code (IaC)
-Provision the infrastructure using:
-- **Terraform**
-- **AWS CDK (TypeScript/Python)**
-- **Pulumi (TypeScript/Python)**
+Workflow File: .github/workflows/ci-cd-pipeline.yml
+yaml
+Copy code
+name: CI/CD Pipeline with Zero-Downtime Deployment
 
-Ensure the IaC code adheres to best practices, is well-documented, and structured properly.
+on:
+  push:
+    branches:
+      - main
 
-## Deployment Process
-1. **Review Microservices**: Understand the provided Notification API and Email Sender microservices.
-2. **Design Deployment**: Plan the deployment strategy considering scalability, reliability, and security.
-3. **Create Dockerfiles**: 
-   - Write Dockerfiles for the Notification microservices.
-   - Build and test the Docker images locally.
-4. **Push to Amazon ECR**:
-   - Create Amazon ECR repositories for each microservice.
-   - Push the Docker images to the respective ECR repositories.
-5. **Provision Infrastructure**: Use the chosen IaC tool to provision necessary AWS services.
-6. **Deploy Services**: Deploy the microservices using AWS ECS Fargate.
-7. **Implement Logging**: Ensure ECS tasks log application output to CloudWatch.
-8. **Auto-Scaling Configuration**: Implement auto-scaling based on 70% CPU usage threshold.
-9. **Health Check**: 
-   - Identify health check endpoints in the microservice code.
-   - Configure ECS health check paths using the identified endpoints.
-10. **Test and Verify**: Ensure services are functioning correctly, can scale, and handle failures.
-11. **Document**: Prepare and include a README file explaining the deployment process, architecture, and operational considerations.
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-## Bonus Points
-- Implement a CI/CD pipeline using AWS CodePipeline or GitHub Actions.
-- Propose and implement a strategy for zero-downtime deployments.
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-## Instructions
-1. **Review Microservices and Configuration**: Understand the Notification API and Email Sender interaction.
-2. **Design Deployment**: Strategize considering all requirements.
-3. **Create Dockerfiles**: Write Dockerfiles, build, and test Docker images.
-4. **Push to Amazon ECR**: Create ECR repositories and push Docker images.
-5. **Provision Infrastructure**: Implement using Terraform, AWS CDK, or Pulumi.
-6. **Deploy Services**: Use AWS ECS or Fargate.
-7. **Implement Logging**: Ensure logs are sent to CloudWatch.
-8. **Configure Auto-Scaling**: Set auto-scaling based on 70% CPU usage.
-9. **Configure Health Checks**: Implement and configure health check paths.
-10. **Test and Verify**: Ensure system correctness, scalability, and fault tolerance.
-11. **Document**: Prepare and include a README file explaining the deployment process and architecture.
+      - name: Build and Push Docker Image for Notification Service
+        run: |
+          IMAGE_URI=${{ secrets.ECR_URI }}/notification-app:${{ github.sha }}
+          docker build -t $IMAGE_URI -f ./notification-app/Dockerfile .
+          docker push $IMAGE_URI
 
-## Evaluation
-Your submission will be evaluated based on:
-- Quality, clarity, and maintainability of IaC code.
-- Robustness and appropriateness of deployment architecture.
-- Use and understanding of specified AWS services and best practices.
-- Clarity and completeness of documentation and operational instructions.
+      - name: Build and Push Docker Image for Email Service
+        run: |
+          IMAGE_URI=${{ secrets.ECR_URI }}/email-service-app:${{ github.sha }}
+          docker build -t $IMAGE_URI -f ./email-service-app/Dockerfile .
+          docker push $IMAGE_URI
 
-## Submission
-Submit your IaC code, configuration files, and README as a ZIP file or a link to a version-controlled repository (e.g., GitHub).
-Fork the repo, complete the assessment, and send a pull request. 
+      - name: Deploy Infrastructure with Terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve \
+            -var="notification_image=${{ secrets.ECR_URI }}/notification-app:${{ github.sha }}" \
+            -var="email_image=${{ secrets.ECR_URI }}/email-service-app:${{ github.sha }}"
 
----
+      - name: Update ECS Service for Rolling Deployment
+        run: |
+          aws ecs update-service \
+            --cluster notification-cluster \
+            --service notification-service \
+            --force-new-deployment \
+            --region us-east-1
 
+      - name: Monitor Deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster notification-cluster \
+            --services notification-service \
+            --region us-east-1
+## Deployment Steps
+Checkout Code: The code is checked out from the repository.
+Docker Buildx: Docker Buildx is set up for building multi-platform Docker images.
+Amazon ECR Login: The GitHub Actions workflow logs in to Amazon ECR to push Docker images.
+Build and Push Docker Images: Docker images for Notification API and Email Sender are built and pushed to ECR.
+Terraform Deployment: The infrastructure is provisioned using Terraform, with image URIs passed as variables.
+Rolling Deployment: The ECS service is updated to trigger a rolling deployment, ensuring zero downtime.
+Monitor Deployment: The deployment is monitored to ensure the service is running as expected.
+Zero-Downtime Deployment
+The deployment strategy involves updating the ECS services incrementally (rolling update), which ensures that new tasks are started before the old ones are stopped, minimizing downtime.
 
-# NotificationWorkspace2
+## Testing and Verification
+Health Checks: ECS health checks are configured to ensure the application is healthy before serving traffic.
+Load Balancer: The Application Load Balancer (ALB) is configured to route traffic to the healthy tasks.
+Monitoring: CloudWatch monitors the ECS cluster, logging metrics such as CPU utilization, memory usage, and task health.
+Testing: Automated tests and manual verification ensure that the services are functioning correctly after deployment.
+Documentation and Operational Instructions
+Configuration
+Environment Variables: Store sensitive information (like AWS credentials, SQS URLs, etc.) in .env files or secrets manager.
+Terraform Variables: Configure Terraform variables for region, cluster name, image URIs, etc., in variables.tf.
+## Running the Pipeline
+Push changes to the main branch to trigger the GitHub Actions workflow.
+Monitor the pipeline execution in the GitHub Actions tab.
+Rolling Back
+If issues are detected, revert to the previous task definition in ECS, or manually rollback using AWS CLI.
+Known Issues
+SQS Queue Messages Not Received: Ensure the correct SQS queue URL is used, and the IAM roles have the necessary permissions.
+## Next Steps
+Implement additional monitoring and alerting in CloudWatch.
+Explore Canary deployments as an enhancement to zero-downtime strategies.
+## Conclusion
+This project demonstrates the deployment of microservices on AWS using a robust CI/CD pipeline with Terraform, Docker, and GitHub Actions. The focus on scalability, resilience, observability, and security ensures that the infrastructure is production-ready and can handle real-world demands.
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Hands-on in the implementation:
 
-✨ **This workspace has been generated by [Nx, Smart Monorepos · Fast CI.](https://nx.dev)** ✨
+vidhyathiruvenkadam@vidhyas-Air notification-app % curl -X POST http://ecs-lb-1211125363.us-east-1.elb.amazonaws.com/health
+ok%
 
-## Integrate with editors
-
-Enhance your Nx experience by installing [Nx Console](https://nx.dev/nx-console) for your favorite editor. Nx Console
-provides an interactive UI to view your projects, run tasks, generate code, and more! Available for VSCode, IntelliJ and
-comes with a LSP for Vim users.
-
-## Start the application
-Run `npm install` and 
-Run `npx nx serve pt-notification-service` to start the development server. Happy coding!
-
-## Build for production
-
-Run `npx nx build pt-notification-service` to build the application. The build artifacts are stored in the output directory (e.g. `dist/` or `build/`), ready to be deployed.
-
-## Running tasks
-
-To execute tasks with Nx use the following syntax:
-
-```
-npx nx <target> <project> <...options>
-```
-
-You can also run multiple targets:
-
-```
-npx nx run-many -t <target1> <target2>
-```
-
-..or add `-p` to filter specific projects
-
-```
-npx nx run-many -t <target1> <target2> -p <proj1> <proj2>
-```
-
-Targets can be defined in the `package.json` or `projects.json`. Learn more [in the docs](https://nx.dev/features/run-tasks).
-
-## Set up CI!
-
-Nx comes with local caching already built-in (check your `nx.json`). On CI you might want to go a step further.
-
-- [Set up remote caching](https://nx.dev/features/share-your-cache)
-- [Set up task distribution across multiple machines](https://nx.dev/nx-cloud/features/distribute-task-execution)
-- [Learn more how to setup CI](https://nx.dev/recipes/ci)
-
-## Explore the project graph
-
-Run `npx nx graph` to show the graph of the workspace.
-It will show tasks that you can run with Nx.
-
-- [Learn more about Exploring the Project Graph](https://nx.dev/core-features/explore-graph)
-
-## Connect with us!
-
-- [Join the community](https://nx.dev/community)
-- [Subscribe to the Nx Youtube Channel](https://www.youtube.com/@nxdevtools)
-- [Follow us on Twitter](https://twitter.com/nxdevtools)
+vidhyathiruvenkadam@vidhyas-Air notification-app % curl -X POST http://ecs-lb-1211125363.us-east-1.elb.amazonaws.com/send-notification \
+-H "Content-Type: application/json" \
+-d '{"message": "Dear ones, I think it is possible for ordinary people to choose to be extraordinary!"}'
+Notification queued successfully%                                                                                                    
+vidhyathiruvenkadam@vidhyas-Air notification-app %

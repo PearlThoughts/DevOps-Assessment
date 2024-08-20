@@ -1,0 +1,59 @@
+name: CI/CD Pipeline with Zero-Downtime Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push Docker Image for Notification Service
+        run: |
+          IMAGE_URI=${{ secrets.ECR_URI }}/notification-app:${{ github.sha }}
+          docker build -t $IMAGE_URI -f ./notification-app/Dockerfile .
+          docker push $IMAGE_URI
+
+      - name: Build and Push Docker Image for Email Service
+        run: |
+          IMAGE_URI=${{ secrets.ECR_URI }}/email-service-app:${{ github.sha }}
+          docker build -t $IMAGE_URI -f ./email-service-app/Dockerfile .
+          docker push $IMAGE_URI
+
+      - name: Deploy Infrastructure with Terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve \
+            -var="notification_image=${{ secrets.ECR_URI }}/notification-app:${{ github.sha }}" \
+            -var="email_image=${{ secrets.ECR_URI }}/email-service-app:${{ github.sha }}"
+
+      - name: Update ECS Service for Rolling Deployment
+        run: |
+          aws ecs update-service \
+            --cluster notification-cluster \
+            --service notification-service \
+            --force-new-deployment \
+            --region us-east-1
+
+      - name: Monitor Deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster notification-cluster \
+            --services notification-service \
+            --region us-east-1

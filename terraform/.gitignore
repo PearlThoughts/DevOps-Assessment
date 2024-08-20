@@ -1,0 +1,44 @@
+# Terraform state files
+terraform.tfstate
+terraform.tfstate.backup
+
+# .terraform directory (local plugin and module cache)
+.terraform/
+
+# Lock file (optional: if you want to allow for different Terraform versions)
+.terraform.lock.hcl
+
+# Crash log files
+crash.log
+
+# .tfvars files often contain sensitive information, so ignore them.
+# You may want to commit a sample .tfvars file.
+*.tfvars
+
+# Override files (local Terraform overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore .env files containing environment variables
+.env
+
+# Ignore plan output files
+*.tfplan
+
+# Ignore .DS_Store (macOS Finder metadata files)
+.DS_Store
+
+# Ignore logs and other temporary files
+*.log
+*.bak
+*.tmp
+
+# Sensitive information in JSON files
+*.json
+
+# IDE directories and files
+.vscode/
+.idea/
+*.iml
