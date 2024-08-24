@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCOUNT_ID="584696691331"
+        AWS_DEFAULT_REGION="ap-south-1"
+        IMAGE_REPO_NAME="aws_docker_repo"
+        IMAGE_TAG="latest"
+        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
+    }
+
+    stages {
+        stage('Check ECR login Status and retrive the authentiction token') {
+            steps {
+                script {
+                    sh 'aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com'
+                }
+            }
+        }
+        stage('Clone repo from the remote repo') {
+            steps {
+                script {
+                    sh 'git init'
+                    sh 'git pull https://github.com/AftabMulani11/DockerProject.git main'
+                }
+            }
+        }
+        stage('building an image using docker') {
+            steps{
+                script {
+                    dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+                }
+            }
+        }
+        stage('push the image to ECR Services'){
+            steps {
+                script {
+                    sh 'docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG'
+                    sh 'docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}'
+                }
+            }
+        }
+        stage('run the docker image'){
+            steps {
+                script {
+                    sh 'docker run -p 5000:5000 -d ${REPOSITORY_URI}'
+                }
+            }
+        }
+    }
+}
