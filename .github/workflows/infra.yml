@@ -1,0 +1,98 @@
+name: Create AWS Lightsail Instance
+
+on:
+  workflow_dispatch:
+    inputs:
+      s3:
+        description: 'Create s3 bucket'
+        default: 'no'
+        type: choice
+        options:
+          - no
+          - yes
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy          
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Log in to AWS ECR
+      env:
+        AWS_REGION: ap-south-1
+        ECR_URL: 556864637241.dkr.ecr.ap-south-1.amazonaws.com
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set default.region $AWS_REGION
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${ECR_URL}
+
+    - name: Create ECR Repository
+      if: github.event.inputs.action == 'apply'
+      env:
+         EMAIL_REPOSITORY: email_sender
+         API_REPOSITORY: notification_api
+         ECR_URL: 556864637241.dkr.ecr.ap-south-1.amazonaws.com
+      run: |
+        aws ecr describe-repositories --repository-names $EMAIL_REPOSITORY || aws ecr create-repository --repository-name $EMAIL_REPOSITORY
+        aws ecr describe-repositories --repository-names $API_REPOSITORY || aws ecr create-repository --repository-name $API_REPOSITORY
+        #docker build . --file email-sender-app/Dockerfile -t ${ECR_URL}/$EMAIL_REPOSITORY:latest
+        docker build --build-arg USER="${{ secrets.USER }}" --build-arg PASSWORD="${{ secrets.PASSWORD }}" --build-arg QUEUE_URL="${{ secrets.QUEUE_URL }}" . --file email-sender-app/Dockerfile -t ${ECR_URL}/$EMAIL_REPOSITORY:latest
+        docker build --build-arg QUEUE_URL="${{ secrets.QUEUE_URL }}" --build-arg PORT="${{ secrets.PORT }}" . --file notification-api/Dockerfile -t ${ECR_URL}/$API_REPOSITORY:latest
+        #docker build . --file notification-api/Dockerfile -t ${ECR_URL}/$API_REPOSITORY:latest 
+        docker push ${ECR_URL}/$EMAIL_REPOSITORY:latest
+        docker push ${ECR_URL}/$API_REPOSITORY:latest
+          
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Terraform Init
+      if: github.event.inputs.s3 == 'true'
+      run: | 
+        terraform init
+        terraform apply -auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      working-directory: ./apps
+      
+    - name: Terraform Init
+      run: terraform init
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      working-directory: ./terraform
+
+    - name: Terraform Apply
+      if: github.event.inputs.action == 'apply'
+      run: terraform apply -auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      working-directory: ./terraform
+
+    - name: Terraform Destroy
+      if: github.event.inputs.action == 'destroy'
+      run: terraform destroy -auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      working-directory: ./terraform
+      
+    - name: Delete ECR Repository
+      if: github.event.inputs.action == 'destroy'
+      env:
+        EMAIL_REPOSITORY: email_sender
+        API_REPOSITORY: notification_api
+      run: |
+        aws ecr delete-repository --repository-name $EMAIL_REPOSITORY --force
+        aws ecr delete-repository --repository-name $API_REPOSITORY --force

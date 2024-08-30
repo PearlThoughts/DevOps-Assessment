@@ -1,0 +1,19 @@
+{
+  "name": "email-sender",
+  "version": "1.0.0",
+  "description": "Email Sender service for processing SQS messages and sending emails",
+  "main": "emailsender.js",
+  "scripts": {
+    "start": "node emailsender.js"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1432.0",
+    "nodemailer": "^6.9.4"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "author": "",
+  "license": "ISC"
+}
+

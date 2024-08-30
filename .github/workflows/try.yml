@@ -1,0 +1,54 @@
+name: CI/CD Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Choose an action'
+        required: true
+        type: choice
+        options: 
+          - up
+          - down
+
+jobs:
+  create-ecr-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Log in to AWS ECR
+        env:
+          AWS_REGION: ap-south-1
+          ECR_URL: 556864637241.dkr.ecr.ap-south-1.amazonaws.com
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region $AWS_REGION
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${ECR_URL}
+
+      - name: Create ECR Repository
+        if: ${{ github.event.inputs.action == 'up' }}
+        env:
+          EMAIL_REPOSITORY: email_sender
+          API_REPOSITORY: notification_api
+          ECR_URL: 556864637241.dkr.ecr.ap-south-1.amazonaws.com
+        run: |
+          aws ecr describe-repositories --repository-names $EMAIL_REPOSITORY || aws ecr create-repository --repository-name $EMAIL_REPOSITORY
+          aws ecr describe-repositories --repository-names $API_REPOSITORY || aws ecr create-repository --repository-name $API_REPOSITORY
+          #aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.$AWS_REGION.amazonaws.com
+          docker build . --file email-sender-app/Dockerfile -t ${ECR_URL}/$EMAIL_REPOSITORY:latest
+          docker build . --file notification-api/Dockerfile -t ${ECR_URL}/$API_REPOSITORY:latest 
+          docker push ${ECR_URL}/$EMAIL_REPOSITORY:latest
+          docker push ${ECR_URL}/$API_REPOSITORY:latest
+          
+      - name: Delete ECR Repository
+        if: ${{ github.event.inputs.action == 'down' }}
+        env:
+          EMAIL_REPOSITORY: email_sender
+          API_REPOSITORY: notification_api
+        run: |
+          aws ecr delete-repository --repository-name $EMAIL_REPOSITORY --force
+          aws ecr delete-repository --repository-name $API_REPOSITORY --force

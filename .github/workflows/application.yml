@@ -1,0 +1,49 @@
+name: Build and Deploy Docker Image on ECS
+
+on:
+  workflow_dispatch:
+  #push:
+   # branches:
+   #   - master
+   #   - main  # You can change this to any branch you want to trigger the action on
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to AWS ECR
+      env:
+        AWS_REGION: ap-south-1
+        ECR_URL: 556864637241.dkr.ecr.ap-south-1.amazonaws.com
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set default.region $AWS_REGION
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${ECR_URL}
+
+    - name: Build the Docker image
+      env:
+        ECR_URL: 556864637241.dkr.ecr.ap-south-1.amazonaws.com
+      run: |
+        #IMAGE_TAG=$(date +%m-%d_%H-%M)
+        #REPO_EMAIL="email_sender"
+        #REPO_API="notification_api"
+        EMAIL_IMAGE_NAME="email_sender"
+        API_IMAGE_NAME="notification_api"
+        docker build --build-arg USER="${{ secrets.USER }}" --build-arg PASSWORD="${{ secrets.PASSWORD }}" --build-arg QUEUE_URL="${{ secrets.QUEUE_URL }}" --file email-sender-app/Dockerfile --tag "${EMAIL_IMAGE_NAME}" . 
+        docker build --build-arg QUEUE_URL="${{ secrets.QUEUE_URL }}" --build-arg PORT="${{ secrets.PORT }}" --file notification-api/Dockerfile --tag "${API_IMAGE_NAME}" . 
+        EMAIL_IMAGE_URI=${ECR_URL}/${EMAIL_IMAGE_NAME}
+        API_IMAGE_URI=${ECR_URL}/${API_IMAGE_NAME}
+        docker tag "${EMAIL_IMAGE_NAME}" ${EMAIL_IMAGE_URI}
+        docker tag "${API_IMAGE_NAME}" ${API_IMAGE_URI}
+        docker push ${EMAIL_IMAGE_URI}
+        docker push ${API_IMAGE_URI}
+        echo "email_image_uri=$EMAIL_IMAGE_URI" >> $GITHUB_ENV
+        echo "api_image_uri=$API_IMAGE_URI" >> $GITHUB_ENV
