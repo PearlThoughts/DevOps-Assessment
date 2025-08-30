@@ -1,4 +1,3 @@
-# PearlThoughts Interview Assessment
 # Scalable Notification Service Deployment on AWS
 
 ## Introduction
